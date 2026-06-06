@@ -50,4 +50,16 @@ public class RegistryService {
         }
     }
 
+    public JsonNode searchPackages(String query){
+        try{
+            return restClient.get()
+                .uri("/-/v1/search?text={query}&size=10", query)
+                .retrieve()
+                .body(JsonNode.class);
+        }catch(Exception e){
+            System.err.println("Error searching packages for query " + query + ": " + e.getMessage());
+            return null;
+        }
+    }
+
 }
