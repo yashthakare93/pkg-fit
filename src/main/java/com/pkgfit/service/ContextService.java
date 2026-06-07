@@ -10,12 +10,16 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pkgfit.model.ProjectContext;
 
 @Service
 public class ContextService {
+    private static final Logger log = LoggerFactory.getLogger(ContextService.class);
     private final ObjectMapper objectMapper;
     private final Path workingDir;
 
@@ -60,7 +64,7 @@ public class ContextService {
             }
 
         } catch (Exception e) {
-            System.err.println("Error detecting Node.js version: " + e.getMessage());
+            log.warn("Error detecting Node.js version: {}", e.getMessage());
         }
         return "0.0.0";
     }
@@ -74,7 +78,7 @@ public class ContextService {
             extractDepsInto(root.path("dependencies"), combined);
             extractDepsInto(root.path("devDependencies"), combined);
         } catch (Exception e) {
-            System.err.println("Failed to parse package.json: " + e.getMessage());
+            log.warn("Failed to parse package.json: {}", e.getMessage());
         }
         return Map.copyOf(combined);
     }

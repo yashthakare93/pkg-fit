@@ -32,12 +32,14 @@ class RegistryServiceTest {
 
         when(builder.baseUrl(anyString())).thenReturn(builder);
         when(builder.defaultHeader(anyString(), anyString())).thenReturn(builder);
+        when(builder.requestFactory(any())).thenReturn(builder);
         when(builder.build()).thenReturn(restClient);
         when(restClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(anyString(), (Object) any())).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
 
-        registryService = new RegistryService(builder);
+        registryService = new RegistryService(builder, "https://registry.npmjs.org/",
+                java.time.Duration.ofSeconds(5), java.time.Duration.ofSeconds(10));
     }
 
     @Test

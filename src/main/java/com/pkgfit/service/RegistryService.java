@@ -1,19 +1,34 @@
 package com.pkgfit.service;
 
+import java.time.Duration;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class RegistryService {
-    private static final String REGISTRY_BASE = "https://registry.npmjs.org/";
+    
     private final RestClient restClient;
 
-    public RegistryService(RestClient.Builder restClientBuilder){
+    private static final Logger log = LoggerFactory.getLogger(RegistryService.class);
+
+    public RegistryService(RestClient.Builder restClientBuilder,
+            @Value("${pkgfit.registry.url}") String registryBase,
+            @Value("${pkgfit.registry.connect-timeout:5s}") Duration connectTimeout,
+            @Value("${pkgfit.registry.read-timeout:10s}") Duration readTimeout) {
+        var factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout((int) connectTimeout.toMillis());
+        factory.setReadTimeout((int) readTimeout.toMillis());
         this.restClient = restClientBuilder
-            .baseUrl(REGISTRY_BASE)
+            .baseUrl(registryBase)
             .defaultHeader("Accept", "application/json")
+            .requestFactory(factory)
             .build();
     }
 
@@ -28,7 +43,7 @@ public class RegistryService {
             if(response == null) throw new RuntimeException("Empty response from registry for package: " + packageName);
             return response;
         }catch(Exception e){
-            System.err.println("Error fetching metadata for package " + packageName + ": " + e.getMessage());
+            log.error("Error fetching metadata for package " + packageName + ": " + e.getMessage());
             return null;
         }
     }
@@ -57,7 +72,7 @@ public class RegistryService {
                 .retrieve()
                 .body(JsonNode.class);
         }catch(Exception e){
-            System.err.println("Error searching packages for query " + query + ": " + e.getMessage());
+            log.error("Error searching packages for query " + query + ": " + e.getMessage());
             return null;
         }
     }

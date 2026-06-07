@@ -16,7 +16,7 @@ import com.pkgfit.model.ResolutionResult.SkippedVersion;
 public class ResolverService {
 
     private final RegistryService registryService;
-
+     
     public ResolverService(RegistryService registryService) {
         this.registryService = registryService;
     }
