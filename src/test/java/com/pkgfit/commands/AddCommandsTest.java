@@ -60,7 +60,7 @@ class AddCommandsTest {
         when(resolverService.resolve("lodash", "", emptyContext)).thenReturn(result);
         mockCompatibility("4.18.1");
 
-        String output = commands.add("lodash", false);
+        String output = commands.add("lodash", false, false);
 
         assertEquals("Added dependency 'lodash@^4.18.1' as a dependency.", output);
     }
@@ -71,7 +71,7 @@ class AddCommandsTest {
         when(resolverService.resolve("react", "^18.0.0", emptyContext)).thenReturn(result);
         mockCompatibility("18.3.1");
 
-        String output = commands.add("react@^18.0.0", false);
+        String output = commands.add("react@^18.0.0", false, false);
 
         assertEquals("Added dependency 'react@^18.0.0' as a dependency.", output);
     }
@@ -82,7 +82,7 @@ class AddCommandsTest {
         when(resolverService.resolve("react", "18.3.1", emptyContext)).thenReturn(result);
         mockCompatibility("18.3.1");
 
-        String output = commands.add("react@18.3.1", false);
+        String output = commands.add("react@18.3.1", false, false);
 
         assertEquals("Added dependency 'react@18.3.1' as a dependency.", output);
     }
@@ -93,7 +93,7 @@ class AddCommandsTest {
         when(resolverService.resolve("mocha", "", emptyContext)).thenReturn(result);
         mockCompatibility("11.7.6");
 
-        String output = commands.add("mocha", true);
+        String output = commands.add("mocha", true, false);
 
         assertEquals("Added devDependency 'mocha@^11.7.6' as a devDependency.", output);
     }
@@ -104,7 +104,7 @@ class AddCommandsTest {
         when(resolverService.resolve("@angular/core", "15.0.0", emptyContext)).thenReturn(result);
         mockCompatibility("15.0.0");
 
-        String output = commands.add("@angular/core@15.0.0", false);
+        String output = commands.add("@angular/core@15.0.0", false, false);
 
         assertEquals("Added dependency '@angular/core@15.0.0' as a dependency.", output);
     }
@@ -114,7 +114,7 @@ class AddCommandsTest {
         ResolutionResult result = new ResolutionResult("unknown", null, List.of(), false);
         when(resolverService.resolve("unknown", "", emptyContext)).thenReturn(result);
 
-        String output = commands.add("unknown", false);
+        String output = commands.add("unknown", false, false);
 
         assertEquals("Could not resolve 'unknown'.", output);
     }
@@ -128,10 +128,21 @@ class AddCommandsTest {
         when(registryService.fetchPackageMetadata("framer-motion")).thenReturn(metadata);
         when(compatibilityService.findCompatibleVersion(any(), eq("11.0.0"), any())).thenReturn(null);
 
-        String output = commands.add("framer-motion", false);
+        String output = commands.add("framer-motion", false, false);
 
         assertEquals("Could not find a version of 'framer-motion' compatible with existing dependencies.",
                 output);
+    }
+
+    @Test
+    void addPinsExactVersion() {
+        ResolutionResult result = new ResolutionResult("lodash", "4.18.1", List.of(), false);
+        when(resolverService.resolve("lodash", "", emptyContext)).thenReturn(result);
+        mockCompatibility("4.18.1");
+
+        String output = commands.add("lodash", false, true);
+
+        assertEquals("Added dependency 'lodash@4.18.1' as a dependency.", output);
     }
 
     @Test
@@ -141,7 +152,7 @@ class AddCommandsTest {
         mockCompatibility("4.18.1");
         doThrow(new IOException("Permission denied")).when(addService).addDependency(any(), any(), eq(false), any());
 
-        String output = commands.add("lodash", false);
+        String output = commands.add("lodash", false, false);
 
         assertEquals("Failed to write package.json: Permission denied", output);
     }

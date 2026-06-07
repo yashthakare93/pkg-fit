@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellOption;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -14,20 +16,30 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class InitCommands {
 
     private final ObjectMapper objectMapper;
+    private final Path workingDir;
 
+    @Autowired
     public InitCommands(ObjectMapper objectMapper) {
+        this(objectMapper, Path.of("."));
+    }
+
+    InitCommands(ObjectMapper objectMapper, Path workingDir) {
         this.objectMapper = objectMapper;
+        this.workingDir = workingDir;
     }
 
     @ShellMethod(value = "Create a package.json if none exists.", key = {"init"})
-    public String init() {
-        File pkgJson = Path.of(".").resolve("package.json").toFile();
+    public String init(@ShellOption(defaultValue = "", help = "Project name") String name) {
+        File pkgJson = workingDir.resolve("package.json").toFile();
         if (pkgJson.exists()) {
             return "package.json already exists.";
         }
         try {
             ObjectNode root = objectMapper.createObjectNode();
-            root.put("name", Path.of(".").toAbsolutePath().getFileName().toString());
+            String projectName = name.isBlank()
+                    ? workingDir.toAbsolutePath().getFileName().toString()
+                    : name;
+            root.put("name", projectName);
             root.put("version", "1.0.0");
             root.putObject("dependencies");
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(pkgJson, root);

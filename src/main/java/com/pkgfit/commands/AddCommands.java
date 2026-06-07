@@ -39,7 +39,8 @@ public class AddCommands {
     @ShellMethod(value = "Add a dependency to package.json.", key = {"add", "a"})
     public String add(
             String packageName,
-            @ShellOption(arity = 0, defaultValue = "false", help = "Add as devDependency", value = "--dev") boolean dev) {
+            @ShellOption(arity = 0, defaultValue = "false", help = "Add as devDependency", value = "--dev") boolean dev,
+            @ShellOption(arity = 0, defaultValue = "false", help = "Pin exact version", value = "--exact") boolean exact) {
         PackageName parsed = PackageName.parse(packageName);
 
         String rangeToUse = parsed.range().isEmpty() ? "" : parsed.range();
@@ -68,7 +69,7 @@ public class AddCommands {
 
         String rangeToWrite;
         if (parsed.range().isEmpty()) {
-            rangeToWrite = "^" + versionToUse;
+            rangeToWrite = exact ? versionToUse : "^" + versionToUse;
         } else {
             rangeToWrite = parsed.range();
         }

@@ -5,6 +5,7 @@ import java.nio.file.Path;
 
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellOption;
 
 import com.pkgfit.model.ProjectContext;
 import com.pkgfit.model.ResolutionResult;
@@ -27,7 +28,8 @@ public class UpdateCommands {
     }
 
     @ShellMethod(value = "Update a dependency to latest version.", key = {"update", "up"})
-    public String update(String packageName) {
+    public String update(String packageName,
+            @ShellOption(arity = 0, defaultValue = "false", help = "Update devDependency", value = "--dev") boolean dev) {
         PackageName parsed = PackageName.parse(packageName);
 
         if (parsed.name().isBlank()) {
@@ -48,7 +50,7 @@ public class UpdateCommands {
                 : parsed.range();
 
         try {
-            addService.addDependency(parsed.name(), rangeToWrite, false, Path.of("."));
+            addService.addDependency(parsed.name(), rangeToWrite, dev, Path.of("."));
             return String.format("Updated '%s' from '%s' to '%s' (resolved %s).",
                     parsed.name(), existingRange != null ? existingRange : "-", rangeToWrite, result.resolvedVersion());
         } catch (IOException e) {

@@ -29,18 +29,20 @@ public class InstallCommands {
     }
 
     @ShellMethod(value="Install dependencies: update all to latest matching versions.", key={"install", "i"})
-    public String install(@ShellOption(defaultValue="", help="Package name(s)") String packageName){
+    public String install(
+            @ShellOption(defaultValue="", help="Package name(s)") String packageName,
+            @ShellOption(arity = 0, defaultValue = "false", help = "Add as devDependency", value = "--dev") boolean dev){
         if (!packageName.isBlank()) {
             String[] parts = packageName.split("[ ,]");
             if (parts.length > 1) {
-                return installMultiple(parts);
+                return installMultiple(parts, dev);
             }
-            return resolveSingle(packageName);
+            return resolveSingle(packageName, dev);
         }
-        return batchUpdate();
+        return batchUpdate(dev);
     }
 
-    private String installMultiple(String[] packages) {
+    private String installMultiple(String[] packages, boolean dev) {
         StringBuilder sb = new StringBuilder();
         int installed = 0;
         int failed = 0;
@@ -60,7 +62,7 @@ public class InstallCommands {
             }
             try {
                 String rangeToWrite = parsed.range().isEmpty() ? "^" + result.resolvedVersion() : parsed.range();
-                addService.addDependency(parsed.name(), rangeToWrite, false, Path.of("."));
+                addService.addDependency(parsed.name(), rangeToWrite, dev, Path.of("."));
                 sb.append(String.format("  \u2713 %s@%s\n", parsed.name(), result.resolvedVersion()));
                 installed++;
             } catch (IOException e) {
@@ -72,7 +74,7 @@ public class InstallCommands {
         return sb.toString();
     }
 
-    private String resolveSingle(String input) {
+    private String resolveSingle(String input, boolean dev) {
         PackageName parsed = PackageName.parse(input);
         ProjectContext context = contextService.detect();
         ResolutionResult result = resolverService.resolve(parsed.name(), parsed.range(), context);
@@ -81,14 +83,14 @@ public class InstallCommands {
         }
         try {
             addService.addDependency(parsed.name(), parsed.range().isEmpty()
-                    ? "^" + result.resolvedVersion() : parsed.range(), false, Path.of("."));
+                    ? "^" + result.resolvedVersion() : parsed.range(), dev, Path.of("."));
             return String.format("Installed %s@%s", parsed.name(), result.resolvedVersion());
         } catch (IOException e) {
             return "Failed to write package.json: " + e.getMessage();
         }
     }
 
-    private String batchUpdate() {
+    private String batchUpdate(boolean dev) {
         ProjectContext context = contextService.detect();
         if (!context.packageJsonExists()) {
             return "No package.json found in current directory.";
@@ -123,7 +125,7 @@ public class InstallCommands {
             }
 
             try {
-                addService.addDependency(name, newRange, false, Path.of("."));
+                addService.addDependency(name, newRange, dev, Path.of("."));
                 sb.append(String.format("  \u2713 %s \u2014 %s \u2192 %s\n", name, range, newRange));
                 updated++;
             } catch (IOException e) {
