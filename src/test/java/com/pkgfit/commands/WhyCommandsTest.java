@@ -66,7 +66,7 @@ class WhyCommandsTest {
         String output = commands.why("lodash");
 
         assertTrue(output.contains("lodash"));
-        assertTrue(output.contains("Installed range:"));
+        assertTrue(output.contains("Range:"));
         assertTrue(output.contains("^4.0.0"));
         assertTrue(output.contains("4.18.1"));
         assertTrue(output.contains("3.10.1"));
@@ -120,5 +120,40 @@ class WhyCommandsTest {
         String output = commands.why("lodash");
 
         assertTrue(output.contains("not in your dependencies"));
+    }
+
+    @Test
+    void whyWithExplicitRangeNotInstalled() throws Exception {
+        when(contextService.detect()).thenReturn(new ProjectContext("20.0.0", Map.of(), "Linux", "x64", false));
+
+        List<SkippedVersion> skipped = List.of(
+                new SkippedVersion("5.0.0-alpha", "pre-release version not matched"));
+        when(resolverService.resolve(eq("lodash"), eq("^5.0.0"), any()))
+                .thenReturn(new ResolutionResult("lodash", "5.1.0", skipped, false));
+
+        String metadataJson = """
+                {
+                    "name": "lodash",
+                    "versions": {
+                        "5.1.0": {
+                            "peerDependencies": {}
+                        }
+                    }
+                }
+                """;
+        when(registryService.fetchPackageMetadata("lodash"))
+                .thenReturn(mapper.readTree(metadataJson));
+
+        String output = commands.why("lodash@^5.0.0");
+
+        assertTrue(output.contains("lodash"));
+        assertTrue(output.contains("5.1.0"));
+        assertTrue(output.contains("5.0.0-alpha"));
+    }
+
+    @Test
+    void whyEmptyPackageName() {
+        String output = commands.why("");
+        assertTrue(output.contains("Package name is required"));
     }
 }

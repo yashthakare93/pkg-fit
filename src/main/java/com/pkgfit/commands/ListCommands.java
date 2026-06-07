@@ -4,13 +4,14 @@ import java.util.Map;
 
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellOption;
 
 import com.pkgfit.model.ProjectContext;
 import com.pkgfit.service.ContextService;
 
 @ShellComponent
 public class ListCommands {
-    
+
     private final ContextService contextService;
 
     public ListCommands(ContextService contextService) {
@@ -18,25 +19,33 @@ public class ListCommands {
     }
 
     @ShellMethod(value="List installed dependencies.", key={"list", "ls"})
-    public String list() {
+    public String list(
+            @ShellOption(arity = 0, defaultValue = "false", help = "Show only devDependencies", value = "--dev") boolean dev) {
         ProjectContext context = contextService.detect();
 
         if(!context.packageJsonExists()){
             return "No package.json found in current directory.";
         }
 
-        Map<String, String> deps = context.existingDeps();
-        if(deps.isEmpty()){
-            return "No dependencies found in package.json.";
+        Map<String, String> deps;
+        String label;
+        if (dev) {
+            deps = contextService.readDevDepsOnly();
+            label = "devDependencies";
+        } else {
+            deps = context.existingDeps();
+            label = "Dependencies";
         }
-        
-        StringBuilder sb = new StringBuilder();
-        sb.append("Dependencies (").append(deps.size()).append("):\n");
-        sb.append("-----------------------------\n");
 
+        if(deps.isEmpty()){
+            return "No " + label + " found in package.json.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(label).append(" (").append(deps.size()).append("):\n");
+        sb.append("-----------------------------\n");
 
         deps.forEach((name, version) -> sb.append(String.format("%s@%s\n", name, version)));
         return sb.toString();
     }
-
 }

@@ -69,6 +69,32 @@ public class ContextService {
         return "0.0.0";
     }
 
+    public Map<String, String> readDepsOnly() {
+        File pkgJson = workingDir.resolve("package.json").toFile();
+        if (!pkgJson.exists()) return Map.of();
+        Map<String, String> result = new HashMap<>();
+        try {
+            JsonNode root = objectMapper.readTree(pkgJson);
+            extractDepsInto(root.path("dependencies"), result);
+        } catch (Exception e) {
+            log.warn("Failed to parse package.json: {}", e.getMessage());
+        }
+        return Map.copyOf(result);
+    }
+
+    public Map<String, String> readDevDepsOnly() {
+        File pkgJson = workingDir.resolve("package.json").toFile();
+        if (!pkgJson.exists()) return Map.of();
+        Map<String, String> result = new HashMap<>();
+        try {
+            JsonNode root = objectMapper.readTree(pkgJson);
+            extractDepsInto(root.path("devDependencies"), result);
+        } catch (Exception e) {
+            log.warn("Failed to parse package.json: {}", e.getMessage());
+        }
+        return Map.copyOf(result);
+    }
+
     Map<String, String> readPackageJsonDeps() {
         File pkgJson = workingDir.resolve("package.json").toFile();
         if (!pkgJson.exists()) return Map.of();

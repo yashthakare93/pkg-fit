@@ -8,10 +8,13 @@ import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.pkgfit.model.ProjectContext;
 import com.pkgfit.model.ResolutionResult;
 import com.pkgfit.service.AddService;
+import com.pkgfit.service.CompatibilityService;
 import com.pkgfit.service.ContextService;
+import com.pkgfit.service.RegistryService;
 import com.pkgfit.service.ResolverService;
 import com.pkgfit.util.PackageName;
 
@@ -21,11 +24,17 @@ public class InstallCommands {
     private final ContextService contextService;
     private final ResolverService resolverService;
     private final AddService addService;
+    private final RegistryService registryService;
+    private final CompatibilityService compatibilityService;
 
-    public InstallCommands(ContextService contextService, ResolverService resolverService, AddService addService) {
+    public InstallCommands(ContextService contextService, ResolverService resolverService,
+            AddService addService, RegistryService registryService,
+            CompatibilityService compatibilityService) {
         this.contextService = contextService;
         this.resolverService = resolverService;
         this.addService = addService;
+        this.registryService = registryService;
+        this.compatibilityService = compatibilityService;
     }
 
     @ShellMethod(value="Install dependencies: update all to latest matching versions.", key={"install", "i"})
@@ -60,10 +69,18 @@ public class InstallCommands {
                 failed++;
                 continue;
             }
+
+            String versionToUse = resolveWithCompatibility(parsed.name(), result.resolvedVersion(), context, sb);
+            if (versionToUse == null) {
+                sb.append(String.format("  \u2717 %s \u2014 no version compatible with existing deps\n", pkg));
+                failed++;
+                continue;
+            }
+
             try {
-                String rangeToWrite = parsed.range().isEmpty() ? "^" + result.resolvedVersion() : parsed.range();
+                String rangeToWrite = parsed.range().isEmpty() ? "^" + versionToUse : parsed.range();
                 addService.addDependency(parsed.name(), rangeToWrite, dev, Path.of("."));
-                sb.append(String.format("  \u2713 %s@%s\n", parsed.name(), result.resolvedVersion()));
+                sb.append(String.format("  \u2713 %s@%s\n", parsed.name(), versionToUse));
                 installed++;
             } catch (IOException e) {
                 sb.append(String.format("  \u2717 %s \u2014 failed to write: %s\n", pkg, e.getMessage()));
@@ -81,13 +98,36 @@ public class InstallCommands {
         if (!result.hasResolution()) {
             return "Could not resolve '" + input + "'.";
         }
+
+        String versionToUse = resolveWithCompatibility(parsed.name(), result.resolvedVersion(), context, null);
+        if (versionToUse == null) {
+            return "Could not find a version of '" + parsed.name()
+                    + "' compatible with existing dependencies.";
+        }
+
         try {
             addService.addDependency(parsed.name(), parsed.range().isEmpty()
-                    ? "^" + result.resolvedVersion() : parsed.range(), dev, Path.of("."));
-            return String.format("Installed %s@%s", parsed.name(), result.resolvedVersion());
+                    ? "^" + versionToUse : parsed.range(), dev, Path.of("."));
+            String note = versionToUse.equals(result.resolvedVersion()) ? "" : " (auto-selected for compatibility)";
+            return String.format("Installed %s@%s%s", parsed.name(), versionToUse, note);
         } catch (IOException e) {
             return "Failed to write package.json: " + e.getMessage();
         }
+    }
+
+    private String resolveWithCompatibility(String name, String preferredVersion,
+            ProjectContext context, StringBuilder sb) {
+        JsonNode metadata = registryService.fetchPackageMetadata(name);
+        if (metadata == null) {
+            if (sb != null) sb.append(String.format("  \u2717 %s \u2014 not found in registry\n", name));
+            return null;
+        }
+        String compatible = compatibilityService.findCompatibleVersion(metadata, preferredVersion, context);
+        if (compatible == null) return null;
+        if (!compatible.equals(preferredVersion) && sb != null) {
+            sb.append(String.format("    (auto-selected %s for peer dep compatibility)\n", compatible));
+        }
+        return compatible;
     }
 
     private String batchUpdate(boolean dev) {

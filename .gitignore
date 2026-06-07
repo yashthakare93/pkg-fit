@@ -35,3 +35,4 @@ build/
 ### CLI artifacts ###
 pkg-fit.log
 package.json
+*.log

@@ -1,6 +1,7 @@
 package com.pkgfit.commands;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -67,5 +68,27 @@ class RemoveCommandsTest {
         String output = commands.remove("lodash", false);
 
         assertEquals("Failed to write package.json: Permission denied", output);
+    }
+
+    @Test
+    void removeMultiplePackages() throws Exception {
+        when(removeService.removeDependency(eq("lodash"), eq(false), any(Path.class))).thenReturn(true);
+        when(removeService.removeDependency(eq("react"), eq(false), any(Path.class))).thenReturn(true);
+
+        String output = commands.remove("lodash react", false);
+
+        assertTrue(output.contains("\u2713 lodash"));
+        assertTrue(output.contains("\u2713 react"));
+    }
+
+    @Test
+    void removeMultipleWithNotFound() throws Exception {
+        when(removeService.removeDependency(eq("lodash"), eq(false), any(Path.class))).thenReturn(true);
+        when(removeService.removeDependency(eq("unknown"), eq(false), any(Path.class))).thenReturn(false);
+
+        String output = commands.remove("lodash unknown", false);
+
+        assertTrue(output.contains("\u2713 lodash"));
+        assertTrue(output.contains("\u2717 unknown"));
     }
 }
