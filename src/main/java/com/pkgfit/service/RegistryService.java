@@ -8,15 +8,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 public class RegistryService {
     
     private final RestClient restClient;
-
-    private static final Logger log = LoggerFactory.getLogger(RegistryService.class);
 
     public RegistryService(RestClient.Builder restClientBuilder,
             @Value("${pkgfit.registry.url}") String registryBase,
@@ -43,7 +39,6 @@ public class RegistryService {
             if(response == null) throw new RuntimeException("Empty response from registry for package: " + packageName);
             return response;
         }catch(Exception e){
-            log.error("Error fetching metadata for package " + packageName + ": " + e.getMessage());
             return null;
         }
     }
@@ -72,7 +67,6 @@ public class RegistryService {
                 .retrieve()
                 .body(JsonNode.class);
         }catch(Exception e){
-            log.error("Error searching packages for query " + query + ": " + e.getMessage());
             return null;
         }
     }
