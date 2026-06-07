@@ -10,6 +10,7 @@ import com.pkgfit.model.ProjectContext;
 import com.pkgfit.model.ResolutionResult;
 import com.pkgfit.service.ContextService;
 import com.pkgfit.service.ResolverService;
+import com.pkgfit.util.PackageName;
 
 @ShellComponent
 public class InstallCommands {
@@ -31,31 +32,9 @@ public class InstallCommands {
     }
 
     private String resolveSingle(String input) {
-        String name;
-        String range;
-
-        if (input.startsWith("@")) {
-            int atIndex = input.indexOf('@', 1);
-            if (atIndex != -1) {
-                name = input.substring(0, atIndex);
-                range = input.substring(atIndex + 1);
-            } else {
-                name = input;
-                range = "";
-            }
-        } else {
-            int atIndex = input.indexOf('@');
-            if (atIndex != -1) {
-                name = input.substring(0, atIndex);
-                range = input.substring(atIndex + 1);
-            } else {
-                name = input;
-                range = "";
-            }
-        }
-
+        PackageName parsed = PackageName.parse(input);
         ProjectContext context = contextService.detect();
-        ResolutionResult result = resolverService.resolve(name, range, context);
+        ResolutionResult result = resolverService.resolve(parsed.name(), parsed.range(), context);
 
         if (!result.hasResolution()) {
             return "Could not resolve '" + input + "'.";

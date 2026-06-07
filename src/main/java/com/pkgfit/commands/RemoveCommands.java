@@ -27,8 +27,8 @@ public class RemoveCommands {
             if (!removed) {
                 return "Package '" + packageName + "' not found" + (dev ? " in devDependencies." : " in dependencies.");
             }
-            String label = dev ? "devDependency" : "dependency";
-            return "Removed '" + packageName + "' from " + label + "s.";
+            String label = dev ? "devDependencies" : "dependencies";
+            return "Removed '" + packageName + "' from " + label + ".";
         } catch (IOException e) {
             return "Failed to write package.json: " + e.getMessage();
         }

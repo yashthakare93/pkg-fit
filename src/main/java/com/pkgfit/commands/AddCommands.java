@@ -12,6 +12,7 @@ import com.pkgfit.model.ResolutionResult;
 import com.pkgfit.service.AddService;
 import com.pkgfit.service.ContextService;
 import com.pkgfit.service.ResolverService;
+import com.pkgfit.util.PackageName;
 
 @ShellComponent
 public class AddCommands {
@@ -30,45 +31,24 @@ public class AddCommands {
     public String add(
             String packageName,
             @ShellOption(arity = 0, defaultValue = "false", help = "Add as devDependency", value = "--dev") boolean dev) {
-        String name;
-        String range;
-
-        if (packageName.startsWith("@")) {
-            int atIndex = packageName.indexOf('@', 1);
-            if (atIndex != -1) {
-                name = packageName.substring(0, atIndex);
-                range = packageName.substring(atIndex + 1);
-            } else {
-                name = packageName;
-                range = "";
-            }
-        } else {
-            int atIndex = packageName.indexOf('@');
-            if (atIndex != -1) {
-                name = packageName.substring(0, atIndex);
-                range = packageName.substring(atIndex + 1);
-            } else {
-                name = packageName;
-                range = "";
-            }
-        }
+        PackageName parsed = PackageName.parse(packageName);
 
         String rangeToWrite;
-        if (range.isEmpty()) {
+        if (parsed.range().isEmpty()) {
             ProjectContext context = contextService.detect();
-            ResolutionResult result = resolverService.resolve(name, "", context);
+            ResolutionResult result = resolverService.resolve(parsed.name(), "", context);
             if (!result.hasResolution()) {
-                return "Could not resolve '" + name + "'.";
+                return "Could not resolve '" + parsed.name() + "'.";
             }
             rangeToWrite = "^" + result.resolvedVersion();
         } else {
-            rangeToWrite = range;
+            rangeToWrite = parsed.range();
         }
 
         try {
-            addService.addDependency(name, rangeToWrite, dev, Path.of("."));
+            addService.addDependency(parsed.name(), rangeToWrite, dev, Path.of("."));
             String label = dev ? "devDependency" : "dependency";
-            return String.format("Added %s '%s@%s' as a %s.", label, name, rangeToWrite, label);
+            return String.format("Added %s '%s@%s' as a %s.", label, parsed.name(), rangeToWrite, label);
         } catch (IOException e) {
             return "Failed to write package.json: " + e.getMessage();
         }

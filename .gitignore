@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### CLI artifacts ###
+pkg-fit.log
+package.json
