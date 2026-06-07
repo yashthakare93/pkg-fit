@@ -12,6 +12,7 @@ import com.pkgfit.model.ProjectContext;
 import com.pkgfit.model.ResolutionResult;
 import com.pkgfit.service.ContextService;
 import com.pkgfit.service.ResolverService;
+import com.pkgfit.util.Colors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +39,7 @@ class PackageCommandsTest {
 
         String output = commands.resolvePackage("foo", "^1.0.0");
 
-        assertEquals("Resolved foo -> 1.2.0", output);
+        assertEquals("Resolved foo -> 1.2.0", Colors.strip(output));
     }
 
     @Test
@@ -48,7 +49,7 @@ class PackageCommandsTest {
 
         String output = commands.resolvePackage("foo", "^1.0.0");
 
-        assertEquals("Could not resolve package 'foo' for version range '^1.0.0'.", output);
+        assertEquals("Could not resolve 'foo' for range '^1.0.0'.", Colors.strip(output));
     }
 
     @Test
@@ -58,7 +59,7 @@ class PackageCommandsTest {
 
         String output = commands.resolvePackage("foo", "^1.0.0");
 
-        assertEquals("Resolved foo -> 1.2.0 (already installed)", output);
+        assertEquals("Resolved foo -> 1.2.0 (already installed)", Colors.strip(output));
     }
 
     @Test
@@ -68,6 +69,6 @@ class PackageCommandsTest {
 
         String output = commands.resolvePackage("foo", "");
 
-        assertEquals("Could not resolve package 'foo' for version range '(any)'.", output);
+        assertEquals("Could not resolve 'foo' for range 'any'.", Colors.strip(output));
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.shell.standard.ShellOption;
 
 import com.pkgfit.model.ProjectContext;
 import com.pkgfit.service.ContextService;
+import com.pkgfit.util.Colors;
 
 @ShellComponent
 public class ListCommands {
@@ -24,7 +25,7 @@ public class ListCommands {
         ProjectContext context = contextService.detect();
 
         if(!context.packageJsonExists()){
-            return "No package.json found in current directory.";
+            return Colors.red("No package.json found in current directory.");
         }
 
         Map<String, String> deps;
@@ -38,14 +39,14 @@ public class ListCommands {
         }
 
         if(deps.isEmpty()){
-            return "No " + label + " found in package.json.";
+            return Colors.yellow("No ") + Colors.bold(label) + Colors.yellow(" found in package.json.");
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append(label).append(" (").append(deps.size()).append("):\n");
-        sb.append("-----------------------------\n");
+        sb.append(Colors.bold(label)).append(Colors.dim(" (" + deps.size() + ")")).append(":\n");
+        sb.append(Colors.dim("-----------------------------\n"));
 
-        deps.forEach((name, version) -> sb.append(String.format("%s@%s\n", name, version)));
+        deps.forEach((name, version) -> sb.append("  ").append(Colors.cyan(name)).append("@").append(Colors.yellow(version)).append("\n"));
         return sb.toString();
     }
 }

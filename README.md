@@ -13,7 +13,7 @@ A Java CLI tool that queries the npm registry, resolves package versions with se
 
 - **Java 17+** — required
 - **Maven** — to build
-- **Node.js** — optional, for Node version detection
+- **Node.js** — optional, for Node version detection and `--install` flag
 
 ---
 
@@ -33,17 +33,17 @@ java -jar target/pkg-fit-0.1.0.jar
 | Command | Alias | Description | Flags |
 |---------|-------|-------------|-------|
 | `init` | — | Create a minimal `package.json` | `[name]` |
-| `add` | `a` | Add a dependency | `--dev` `--exact` |
-| `install` | `i` | Install packages, auto-selects versions compatible with existing peer deps | `--dev` |
+| `add` | `a` | Add a dependency | `--dev` `--exact` `--install` |
+| `install` | `i` | Install packages, auto-selects versions compatible with existing peer deps | `--dev` `--install` |
 | `remove` | `rm` | Remove one or more dependencies | `--dev` |
-| `update` | `up` | Update to latest matching version | `--dev` |
+| `update` | `up` | Update to latest matching version | `--dev` `--install` |
 | `list` | `ls` | List installed dependencies | `--dev` |
 | `outdated` | `outd` | Check for outdated dependencies | `--dev` |
 | `describe` | `desc` | Registry info + installed range + resolved version | |
 | `info` | — | Package metadata from npm registry | |
 | `search` | — | Search packages on npm | |
 | `resolve` | — | Resolve a version from a semver range | |
-| `why` | — | Resolution path: skipped versions, peer deps, installed range | |
+| `why` | — | Resolution path: in-range count, interesting skips, peer deps | |
 | `dedupe` | `dd` | Find conflicting versions across deps and devDeps | |
 | `purge` | `prune` | Remove all dependencies | `--dev` |
 
@@ -59,6 +59,7 @@ init my-project
 add react
 add mocha --dev
 add lodash@^4.0.0
+add tailwindcss --exact
 
 # install with peer dep compatibility check
 i tailwindcss
@@ -108,6 +109,7 @@ purge
 | `CompatibilityService` | Peer dependency compatibility checking during installs |
 | `AddService` | Writes dependencies to `package.json` |
 | `RemoveService` | Removes dependencies from `package.json` |
+| `NpmService` | Runs `npm install` for the `--install` flag |
 
 ---
 
@@ -129,9 +131,11 @@ purge
 ```bash
 mvn package              # with tests
 mvn package -DskipTests  # skip tests
+# integration tests (require network):
+mvn test -DexcludedGroups= -Dgroups=integration
 ```
 
-Tests: **114**
+Tests: **118** (114 unit + 4 integration)
 
 ---
 
@@ -146,17 +150,18 @@ src/main/java/com/pkgfit/
 │   ├── ContextService        Project context (package.json, Node version)
 │   ├── CompatibilityService  Peer dependency compatibility checking
 │   ├── AddService            Write dependencies to package.json
-│   └── RemoveService         Remove dependencies from package.json
+│   ├── RemoveService         Remove dependencies from package.json
+│   └── NpmService            Run npm install for --install flag
+├── config/
+│   ├── PkgFitPromptProvider  Colored shell prompt
+│   └── PkgFitBanner          Startup banner
 ├── model/            Data records (ProjectContext, ResolutionResult)
-└── util/             Utilities (PackageName parser)
+├── util/
+│   ├── PackageName           name@range parser
+│   ├── Colors                ANSI terminal colors
+│   └── Spinner               Animated loading indicator
 
 src/test/java/com/pkgfit/
 ├── commands/         Command unit tests (mocked services)
-└── service/          Service unit tests
+└── service/          Service unit + integration tests
 ```
-
----
-
-## License
-
-MIT

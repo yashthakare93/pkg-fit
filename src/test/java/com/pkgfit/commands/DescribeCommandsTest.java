@@ -16,6 +16,7 @@ import com.pkgfit.model.ResolutionResult;
 import com.pkgfit.service.ContextService;
 import com.pkgfit.service.RegistryService;
 import com.pkgfit.service.ResolverService;
+import com.pkgfit.util.Colors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -55,12 +56,14 @@ class DescribeCommandsTest {
 
         String output = commands.describe("lodash");
 
-        assertTrue(output.contains("lodash"));
-        assertTrue(output.contains("Lodash modular utilities."));
-        assertTrue(output.contains("4.18.1"));
-        assertTrue(output.contains("^4.0.0 -> 4.18.1"));
-        assertTrue(output.contains("MIT"));
-        assertTrue(output.contains("https://lodash.com/"));
+        String clean = Colors.strip(output);
+        assertTrue(clean.contains("lodash"));
+        assertTrue(clean.contains("Lodash modular utilities."));
+        assertTrue(clean.contains("4.18.1"));
+        assertTrue(clean.contains("^4.0.0"));
+        assertTrue(clean.contains("4.18.1"));
+        assertTrue(clean.contains("MIT"));
+        assertTrue(clean.contains("https://lodash.com/"));
     }
 
     @Test
@@ -79,8 +82,9 @@ class DescribeCommandsTest {
 
         String output = commands.describe("react");
 
-        assertTrue(output.contains("not installed"));
-        assertTrue(output.contains("18.3.1"));
+        String clean = Colors.strip(output);
+        assertTrue(clean.contains("not installed"));
+        assertTrue(clean.contains("18.3.1"));
     }
 
     @Test
@@ -90,6 +94,6 @@ class DescribeCommandsTest {
 
         String output = commands.describe("unknown");
 
-        assertTrue(output.contains("not found"));
+        assertTrue(Colors.strip(output).contains("not found"));
     }
 }

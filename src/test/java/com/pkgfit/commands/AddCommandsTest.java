@@ -17,8 +17,10 @@ import com.pkgfit.model.ResolutionResult;
 import com.pkgfit.service.AddService;
 import com.pkgfit.service.CompatibilityService;
 import com.pkgfit.service.ContextService;
+import com.pkgfit.service.NpmService;
 import com.pkgfit.service.RegistryService;
 import com.pkgfit.service.ResolverService;
+import com.pkgfit.util.Colors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +31,7 @@ class AddCommandsTest {
     private AddService addService;
     private RegistryService registryService;
     private CompatibilityService compatibilityService;
+    private NpmService npmService;
     private AddCommands commands;
     private ProjectContext emptyContext;
     private ObjectMapper mapper;
@@ -40,11 +43,12 @@ class AddCommandsTest {
         addService = mock(AddService.class);
         registryService = mock(RegistryService.class);
         compatibilityService = mock(CompatibilityService.class);
+        npmService = mock(NpmService.class);
         mapper = new ObjectMapper();
         emptyContext = ProjectContext.empty();
         when(contextService.detect()).thenReturn(emptyContext);
         commands = new AddCommands(contextService, resolverService, addService,
-                registryService, compatibilityService);
+                registryService, compatibilityService, npmService);
     }
 
     private void mockCompatibility(String version) {
@@ -60,9 +64,9 @@ class AddCommandsTest {
         when(resolverService.resolve("lodash", "", emptyContext)).thenReturn(result);
         mockCompatibility("4.18.1");
 
-        String output = commands.add("lodash", false, false);
+        String output = commands.add("lodash", false, false, false);
 
-        assertEquals("Added dependency 'lodash@^4.18.1' as a dependency.", output);
+        assertEquals("Added lodash@^4.18.1 as dependency", Colors.strip(output));
     }
 
     @Test
@@ -71,9 +75,9 @@ class AddCommandsTest {
         when(resolverService.resolve("react", "^18.0.0", emptyContext)).thenReturn(result);
         mockCompatibility("18.3.1");
 
-        String output = commands.add("react@^18.0.0", false, false);
+        String output = commands.add("react@^18.0.0", false, false, false);
 
-        assertEquals("Added dependency 'react@^18.0.0' as a dependency.", output);
+        assertEquals("Added react@^18.0.0 as dependency", Colors.strip(output));
     }
 
     @Test
@@ -82,9 +86,9 @@ class AddCommandsTest {
         when(resolverService.resolve("react", "18.3.1", emptyContext)).thenReturn(result);
         mockCompatibility("18.3.1");
 
-        String output = commands.add("react@18.3.1", false, false);
+        String output = commands.add("react@18.3.1", false, false, false);
 
-        assertEquals("Added dependency 'react@18.3.1' as a dependency.", output);
+        assertEquals("Added react@18.3.1 as dependency", Colors.strip(output));
     }
 
     @Test
@@ -93,9 +97,9 @@ class AddCommandsTest {
         when(resolverService.resolve("mocha", "", emptyContext)).thenReturn(result);
         mockCompatibility("11.7.6");
 
-        String output = commands.add("mocha", true, false);
+        String output = commands.add("mocha", true, false, false);
 
-        assertEquals("Added devDependency 'mocha@^11.7.6' as a devDependency.", output);
+        assertEquals("Added mocha@^11.7.6 as devDependency", Colors.strip(output));
     }
 
     @Test
@@ -104,9 +108,9 @@ class AddCommandsTest {
         when(resolverService.resolve("@angular/core", "15.0.0", emptyContext)).thenReturn(result);
         mockCompatibility("15.0.0");
 
-        String output = commands.add("@angular/core@15.0.0", false, false);
+        String output = commands.add("@angular/core@15.0.0", false, false, false);
 
-        assertEquals("Added dependency '@angular/core@15.0.0' as a dependency.", output);
+        assertEquals("Added @angular/core@15.0.0 as dependency", Colors.strip(output));
     }
 
     @Test
@@ -114,9 +118,9 @@ class AddCommandsTest {
         ResolutionResult result = new ResolutionResult("unknown", null, List.of(), false);
         when(resolverService.resolve("unknown", "", emptyContext)).thenReturn(result);
 
-        String output = commands.add("unknown", false, false);
+        String output = commands.add("unknown", false, false, false);
 
-        assertEquals("Could not resolve 'unknown'.", output);
+        assertEquals("Could not resolve 'unknown'.", Colors.strip(output));
     }
 
     @Test
@@ -128,10 +132,10 @@ class AddCommandsTest {
         when(registryService.fetchPackageMetadata("framer-motion")).thenReturn(metadata);
         when(compatibilityService.findCompatibleVersion(any(), eq("11.0.0"), any())).thenReturn(null);
 
-        String output = commands.add("framer-motion", false, false);
+        String output = commands.add("framer-motion", false, false, false);
 
         assertEquals("Could not find a version of 'framer-motion' compatible with existing dependencies.",
-                output);
+                Colors.strip(output));
     }
 
     @Test
@@ -140,9 +144,9 @@ class AddCommandsTest {
         when(resolverService.resolve("lodash", "", emptyContext)).thenReturn(result);
         mockCompatibility("4.18.1");
 
-        String output = commands.add("lodash", false, true);
+        String output = commands.add("lodash", false, true, false);
 
-        assertEquals("Added dependency 'lodash@4.18.1' as a dependency.", output);
+        assertEquals("Added lodash@4.18.1 as dependency", Colors.strip(output));
     }
 
     @Test
@@ -152,8 +156,8 @@ class AddCommandsTest {
         mockCompatibility("4.18.1");
         doThrow(new IOException("Permission denied")).when(addService).addDependency(any(), any(), eq(false), any());
 
-        String output = commands.add("lodash", false, false);
+        String output = commands.add("lodash", false, false, false);
 
-        assertEquals("Failed to write package.json: Permission denied", output);
+        assertEquals("Failed to write package.json: Permission denied", Colors.strip(output));
     }
 }

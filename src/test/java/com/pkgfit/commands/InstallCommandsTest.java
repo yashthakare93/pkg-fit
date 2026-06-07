@@ -19,6 +19,7 @@ import com.pkgfit.model.ResolutionResult;
 import com.pkgfit.service.AddService;
 import com.pkgfit.service.CompatibilityService;
 import com.pkgfit.service.ContextService;
+import com.pkgfit.service.NpmService;
 import com.pkgfit.service.RegistryService;
 import com.pkgfit.service.ResolverService;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,7 @@ class InstallCommandsTest {
     private AddService addService;
     private RegistryService registryService;
     private CompatibilityService compatibilityService;
+    private NpmService npmService;
     private InstallCommands commands;
     private ProjectContext emptyContext;
     private ObjectMapper mapper;
@@ -42,10 +44,11 @@ class InstallCommandsTest {
         addService = mock(AddService.class);
         registryService = mock(RegistryService.class);
         compatibilityService = mock(CompatibilityService.class);
+        npmService = mock(NpmService.class);
         mapper = new ObjectMapper();
         emptyContext = ProjectContext.empty();
         commands = new InstallCommands(contextService, resolverService, addService,
-                registryService, compatibilityService);
+                registryService, compatibilityService, npmService);
     }
 
     @Test
@@ -57,7 +60,7 @@ class InstallCommandsTest {
         when(resolverService.resolve(eq("react"), eq("^17.0.0"), any()))
                 .thenReturn(new ResolutionResult("react", "17.0.2", List.of(), false));
 
-        String output = commands.install("", false);
+        String output = commands.install("", false, false);
 
         assertTrue(output.contains("updated"));
     }
@@ -69,7 +72,7 @@ class InstallCommandsTest {
         when(resolverService.resolve(eq("lodash"), eq("^4.18.1"), any()))
                 .thenReturn(new ResolutionResult("lodash", "4.18.1", List.of(), false));
 
-        String output = commands.install("", false);
+        String output = commands.install("", false, false);
 
         assertTrue(output.contains("unchanged"));
     }
@@ -85,7 +88,7 @@ class InstallCommandsTest {
         when(compatibilityService.findCompatibleVersion(any(), eq("4.18.1"), any()))
                 .thenReturn("4.18.1");
 
-        String output = commands.install("lodash", false);
+        String output = commands.install("lodash", false, false);
 
         assertTrue(output.contains("Installed"));
     }
@@ -101,7 +104,7 @@ class InstallCommandsTest {
         when(compatibilityService.findCompatibleVersion(any(), eq("18.3.1"), any()))
                 .thenReturn("18.3.1");
 
-        String output = commands.install("react@^18.0.0", false);
+        String output = commands.install("react@^18.0.0", false, false);
 
         assertTrue(output.contains("Installed"));
     }
@@ -120,7 +123,7 @@ class InstallCommandsTest {
         when(compatibilityService.findCompatibleVersion(any(), eq("4.18.1"), any())).thenReturn("4.18.1");
         when(compatibilityService.findCompatibleVersion(any(), eq("18.3.1"), any())).thenReturn("18.3.1");
 
-        String output = commands.install("lodash react", false);
+        String output = commands.install("lodash react", false, false);
 
         assertTrue(output.contains("installed"));
     }
@@ -130,7 +133,7 @@ class InstallCommandsTest {
         when(resolverService.resolve(eq("unknown"), eq(""), any()))
                 .thenReturn(new ResolutionResult("unknown", null, List.of(), false));
 
-        String output = commands.install("unknown", false);
+        String output = commands.install("unknown", false, false);
 
         assertTrue(output.contains("Could not resolve"));
     }
@@ -145,7 +148,7 @@ class InstallCommandsTest {
         when(registryService.fetchPackageMetadata("mocha")).thenReturn(metadata);
         when(compatibilityService.findCompatibleVersion(any(), eq("10.7.3"), any())).thenReturn("10.7.3");
 
-        String output = commands.install("mocha", true);
+        String output = commands.install("mocha", true, false);
 
         assertTrue(output.contains("Installed"));
         verify(addService).addDependency(eq("mocha"), eq("^10.7.3"), eq(true), any(Path.class));
@@ -161,7 +164,7 @@ class InstallCommandsTest {
         when(registryService.fetchPackageMetadata("tailwindcss")).thenReturn(metadata);
         when(compatibilityService.findCompatibleVersion(any(), eq("4.0.0"), any())).thenReturn(null);
 
-        String output = commands.install("tailwindcss", false);
+        String output = commands.install("tailwindcss", false, false);
 
         assertTrue(output.contains("compatible with existing dependencies"));
     }

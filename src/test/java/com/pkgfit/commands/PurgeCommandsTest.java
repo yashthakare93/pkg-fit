@@ -12,6 +12,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.pkgfit.util.Colors;
 
 class PurgeCommandsTest {
 
@@ -28,7 +29,7 @@ class PurgeCommandsTest {
     void noPackageJson() {
         PurgeCommands commands = new PurgeCommands(mapper, tempDir);
         String output = commands.purge(false);
-        assertTrue(output.contains("No package.json"));
+        assertTrue(Colors.strip(output).contains("No package.json"));
     }
 
     @Test
@@ -41,7 +42,7 @@ class PurgeCommandsTest {
         PurgeCommands commands = new PurgeCommands(mapper, tempDir);
         String output = commands.purge(false);
 
-        assertTrue(output.contains("Removed all dependencies"));
+        assertTrue(Colors.strip(output).contains("Purged dependencies"));
 
         ObjectNode after = (ObjectNode) mapper.readTree(tempDir.resolve("package.json").toFile());
         assertEquals(false, after.has("dependencies"));
@@ -58,7 +59,7 @@ class PurgeCommandsTest {
         PurgeCommands commands = new PurgeCommands(mapper, tempDir);
         String output = commands.purge(true);
 
-        assertTrue(output.contains("Removed all devDependencies"));
+        assertTrue(Colors.strip(output).contains("Purged devDependencies"));
 
         ObjectNode after = (ObjectNode) mapper.readTree(tempDir.resolve("package.json").toFile());
         assertEquals(true, after.has("dependencies"));
@@ -74,7 +75,7 @@ class PurgeCommandsTest {
         PurgeCommands commands = new PurgeCommands(mapper, tempDir);
         String output = commands.purge(false);
 
-        assertTrue(output.contains("No dependencies"));
+        assertTrue(Colors.strip(output).contains("No dependencies"));
     }
 
     @Test
@@ -86,6 +87,6 @@ class PurgeCommandsTest {
         PurgeCommands commands = new PurgeCommands(mapper, tempDir);
         String output = commands.purge(true);
 
-        assertTrue(output.contains("No devDependencies"));
+        assertTrue(Colors.strip(output).contains("No devDependencies"));
     }
 }

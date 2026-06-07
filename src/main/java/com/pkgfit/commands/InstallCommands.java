@@ -14,9 +14,12 @@ import com.pkgfit.model.ResolutionResult;
 import com.pkgfit.service.AddService;
 import com.pkgfit.service.CompatibilityService;
 import com.pkgfit.service.ContextService;
+import com.pkgfit.service.NpmService;
 import com.pkgfit.service.RegistryService;
 import com.pkgfit.service.ResolverService;
+import com.pkgfit.util.Colors;
 import com.pkgfit.util.PackageName;
+import com.pkgfit.util.Spinner;
 
 @ShellComponent
 public class InstallCommands {
@@ -26,92 +29,112 @@ public class InstallCommands {
     private final AddService addService;
     private final RegistryService registryService;
     private final CompatibilityService compatibilityService;
+    private final NpmService npmService;
 
     public InstallCommands(ContextService contextService, ResolverService resolverService,
             AddService addService, RegistryService registryService,
-            CompatibilityService compatibilityService) {
+            CompatibilityService compatibilityService, NpmService npmService) {
         this.contextService = contextService;
         this.resolverService = resolverService;
         this.addService = addService;
         this.registryService = registryService;
         this.compatibilityService = compatibilityService;
+        this.npmService = npmService;
     }
 
     @ShellMethod(value="Install dependencies: update all to latest matching versions.", key={"install", "i"})
     public String install(
             @ShellOption(defaultValue="", help="Package name(s)") String packageName,
-            @ShellOption(arity = 0, defaultValue = "false", help = "Add as devDependency", value = "--dev") boolean dev){
+            @ShellOption(arity = 0, defaultValue = "false", help = "Add as devDependency", value = "--dev") boolean dev,
+            @ShellOption(arity = 0, defaultValue = "false", help = "Run npm install after", value = "--install") boolean install){
         if (!packageName.isBlank()) {
             String[] parts = packageName.split("[ ,]");
             if (parts.length > 1) {
-                return installMultiple(parts, dev);
+                return installMultiple(parts, dev, install);
             }
-            return resolveSingle(packageName, dev);
+            return resolveSingle(packageName, dev, install);
         }
         return batchUpdate(dev);
     }
 
-    private String installMultiple(String[] packages, boolean dev) {
-        StringBuilder sb = new StringBuilder();
-        int installed = 0;
-        int failed = 0;
-        for (String pkg : packages) {
-            PackageName parsed = PackageName.parse(pkg);
-            if (parsed.name().isBlank()) {
-                sb.append(String.format("  \u2717 '%s' \u2014 invalid package name\n", pkg));
-                failed++;
-                continue;
+    private String installMultiple(String[] packages, boolean dev, boolean runNpm) {
+        Spinner.start("Installing " + packages.length + " packages");
+        try {
+            StringBuilder sb = new StringBuilder();
+            int installed = 0;
+            int failed = 0;
+            for (String pkg : packages) {
+                PackageName parsed = PackageName.parse(pkg);
+                if (parsed.name().isBlank()) {
+                    sb.append("  ").append(Colors.red("\u2717")).append(" '").append(pkg).append("' \u2014 ").append(Colors.red("invalid package name")).append("\n");
+                    failed++;
+                    continue;
+                }
+                ProjectContext context = contextService.detect();
+                ResolutionResult result = resolverService.resolve(parsed.name(), parsed.range(), context);
+                if (!result.hasResolution()) {
+                    sb.append("  ").append(Colors.red("\u2717")).append(" ").append(Colors.cyan(parsed.name())).append(" \u2014 ").append(Colors.red("could not resolve")).append("\n");
+                    failed++;
+                    continue;
+                }
+
+                String versionToUse = resolveWithCompatibility(parsed.name(), result.resolvedVersion(), context, sb);
+                if (versionToUse == null) {
+                    sb.append("  ").append(Colors.red("\u2717")).append(" ").append(Colors.cyan(parsed.name())).append(" \u2014 ").append(Colors.red("no version compatible with existing deps")).append("\n");
+                    failed++;
+                    continue;
+                }
+
+                try {
+                    String rangeToWrite = parsed.range().isEmpty() ? "^" + versionToUse : parsed.range();
+                    addService.addDependency(parsed.name(), rangeToWrite, dev, Path.of("."));
+                    sb.append("  ").append(Colors.green("\u2713")).append(" ").append(Colors.cyan(parsed.name())).append("@").append(Colors.bold(versionToUse)).append("\n");
+                    installed++;
+                } catch (IOException e) {
+                    sb.append("  ").append(Colors.red("\u2717")).append(" ").append(Colors.cyan(parsed.name())).append(" \u2014 ").append(Colors.red("failed to write: " + e.getMessage())).append("\n");
+                    failed++;
+                }
             }
+            sb.append("\n").append(Colors.bold(installed + " installed")).append(", ").append(Colors.red(failed + " failed"));
+            if (runNpm && installed > 0) {
+                sb.append("\n").append(npmService.install(Path.of(".")));
+            }
+            return sb.toString();
+        } finally {
+            Spinner.stop();
+        }
+    }
+
+    private String resolveSingle(String input, boolean dev, boolean runNpm) {
+        PackageName parsed = PackageName.parse(input);
+        Spinner.start("Resolving " + parsed.name());
+        try {
             ProjectContext context = contextService.detect();
             ResolutionResult result = resolverService.resolve(parsed.name(), parsed.range(), context);
             if (!result.hasResolution()) {
-                sb.append(String.format("  \u2717 %s \u2014 could not resolve\n", pkg));
-                failed++;
-                continue;
+                return Colors.red("Could not resolve '" + input + "'.");
             }
 
-            String versionToUse = resolveWithCompatibility(parsed.name(), result.resolvedVersion(), context, sb);
+            String versionToUse = resolveWithCompatibility(parsed.name(), result.resolvedVersion(), context, null);
             if (versionToUse == null) {
-                sb.append(String.format("  \u2717 %s \u2014 no version compatible with existing deps\n", pkg));
-                failed++;
-                continue;
+                return Colors.red("Could not find a version of '" + parsed.name()
+                        + "' compatible with existing dependencies.");
             }
 
             try {
-                String rangeToWrite = parsed.range().isEmpty() ? "^" + versionToUse : parsed.range();
-                addService.addDependency(parsed.name(), rangeToWrite, dev, Path.of("."));
-                sb.append(String.format("  \u2713 %s@%s\n", parsed.name(), versionToUse));
-                installed++;
+                addService.addDependency(parsed.name(), parsed.range().isEmpty()
+                        ? "^" + versionToUse : parsed.range(), dev, Path.of("."));
+                String note = versionToUse.equals(result.resolvedVersion()) ? "" : Colors.dim(" (auto-selected for compatibility)");
+                String out = Colors.green("Installed ") + Colors.cyan(parsed.name()) + "@" + Colors.bold(versionToUse) + note;
+                if (runNpm) {
+                    out += "\n" + npmService.install(Path.of("."));
+                }
+                return out;
             } catch (IOException e) {
-                sb.append(String.format("  \u2717 %s \u2014 failed to write: %s\n", pkg, e.getMessage()));
-                failed++;
+                return Colors.red("Failed to write package.json: " + e.getMessage());
             }
-        }
-        sb.append(String.format("\n%d installed, %d failed", installed, failed));
-        return sb.toString();
-    }
-
-    private String resolveSingle(String input, boolean dev) {
-        PackageName parsed = PackageName.parse(input);
-        ProjectContext context = contextService.detect();
-        ResolutionResult result = resolverService.resolve(parsed.name(), parsed.range(), context);
-        if (!result.hasResolution()) {
-            return "Could not resolve '" + input + "'.";
-        }
-
-        String versionToUse = resolveWithCompatibility(parsed.name(), result.resolvedVersion(), context, null);
-        if (versionToUse == null) {
-            return "Could not find a version of '" + parsed.name()
-                    + "' compatible with existing dependencies.";
-        }
-
-        try {
-            addService.addDependency(parsed.name(), parsed.range().isEmpty()
-                    ? "^" + versionToUse : parsed.range(), dev, Path.of("."));
-            String note = versionToUse.equals(result.resolvedVersion()) ? "" : " (auto-selected for compatibility)";
-            return String.format("Installed %s@%s%s", parsed.name(), versionToUse, note);
-        } catch (IOException e) {
-            return "Failed to write package.json: " + e.getMessage();
+        } finally {
+            Spinner.stop();
         }
     }
 
@@ -133,48 +156,53 @@ public class InstallCommands {
     private String batchUpdate(boolean dev) {
         ProjectContext context = contextService.detect();
         if (!context.packageJsonExists()) {
-            return "No package.json found in current directory.";
+            return Colors.red("No package.json found in current directory.");
         }
 
         Map<String, String> deps = context.existingDeps();
         if (deps.isEmpty()) {
-            return "No dependencies found in package.json.";
+            return Colors.yellow("No dependencies found in package.json.");
         }
 
-        StringBuilder sb = new StringBuilder();
-        int updated = 0;
-        int failed = 0;
-        int unchanged = 0;
+        Spinner.start("Resolving " + deps.size() + " dependencies");
+        try {
+            StringBuilder sb = new StringBuilder();
+            int updated = 0;
+            int failed = 0;
+            int unchanged = 0;
 
-        for (Map.Entry<String, String> entry : deps.entrySet()) {
-            String name = entry.getKey();
-            String range = entry.getValue();
+            for (Map.Entry<String, String> entry : deps.entrySet()) {
+                String name = entry.getKey();
+                String range = entry.getValue();
 
-            ResolutionResult result = resolverService.resolve(name, range, context);
-            if (!result.hasResolution()) {
-                sb.append(String.format("  \u2717 %s@%s \u2014 could not resolve\n", name, range));
-                failed++;
-                continue;
+                ResolutionResult result = resolverService.resolve(name, range, context);
+                if (!result.hasResolution()) {
+                    sb.append("  ").append(Colors.red("\u2717")).append(" ").append(Colors.cyan(name)).append("@").append(Colors.yellow(range)).append(" \u2014 ").append(Colors.red("could not resolve")).append("\n");
+                    failed++;
+                    continue;
+                }
+
+                String newRange = "^" + result.resolvedVersion();
+                if (newRange.equals(range)) {
+                    sb.append("  \u2013 ").append(Colors.cyan(name)).append("@").append(Colors.yellow(range)).append(" \u2014 ").append(Colors.dim("unchanged")).append("\n");
+                    unchanged++;
+                    continue;
+                }
+
+                try {
+                    addService.addDependency(name, newRange, dev, Path.of("."));
+                    sb.append("  ").append(Colors.green("\u2713")).append(" ").append(Colors.cyan(name)).append(" \u2014 ").append(Colors.yellow(range)).append(" ").append(Colors.dim("\u2192")).append(" ").append(Colors.green(newRange)).append("\n");
+                    updated++;
+                } catch (IOException e) {
+                    sb.append("  ").append(Colors.red("\u2717")).append(" ").append(Colors.cyan(name)).append(" \u2014 ").append(Colors.red("failed to write: " + e.getMessage())).append("\n");
+                    failed++;
+                }
             }
 
-            String newRange = "^" + result.resolvedVersion();
-            if (newRange.equals(range)) {
-                sb.append(String.format("  \u2013 %s@%s \u2014 unchanged\n", name, range));
-                unchanged++;
-                continue;
-            }
-
-            try {
-                addService.addDependency(name, newRange, dev, Path.of("."));
-                sb.append(String.format("  \u2713 %s \u2014 %s \u2192 %s\n", name, range, newRange));
-                updated++;
-            } catch (IOException e) {
-                sb.append(String.format("  \u2717 %s \u2014 failed to write: %s\n", name, e.getMessage()));
-                failed++;
-            }
+            sb.append("\n").append(Colors.bold(updated + " updated")).append(", ").append(Colors.dim(unchanged + " unchanged")).append(", ").append(Colors.red(failed + " failed"));
+            return sb.toString();
+        } finally {
+            Spinner.stop();
         }
-
-        sb.append(String.format("\n%d updated, %d unchanged, %d failed", updated, unchanged, failed));
-        return sb.toString();
     }
 }

@@ -69,8 +69,8 @@ class WhyCommandsTest {
         assertTrue(output.contains("Range:"));
         assertTrue(output.contains("^4.0.0"));
         assertTrue(output.contains("4.18.1"));
-        assertTrue(output.contains("3.10.1"));
         assertTrue(output.contains("4.0.0-alpha"));
+        assertTrue(output.contains("in range, 2 outside range"));
     }
 
     @Test

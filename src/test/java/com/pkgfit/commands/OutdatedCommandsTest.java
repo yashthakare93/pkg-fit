@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pkgfit.model.ProjectContext;
 import com.pkgfit.service.ContextService;
 import com.pkgfit.service.RegistryService;
+import com.pkgfit.util.Colors;
 
 class OutdatedCommandsTest {
 
@@ -36,7 +37,7 @@ class OutdatedCommandsTest {
 
         String output = commands.outdated(false);
 
-        assertTrue(output.contains("No package.json"));
+        assertTrue(Colors.strip(output).contains("No package.json"));
     }
 
     @Test
@@ -45,7 +46,7 @@ class OutdatedCommandsTest {
 
         String output = commands.outdated(false);
 
-        assertTrue(output.contains("No dependencies"));
+        assertTrue(Colors.strip(output).contains("No dependencies"));
     }
 
     @Test
@@ -59,8 +60,9 @@ class OutdatedCommandsTest {
 
         String output = commands.outdated(false);
 
-        assertTrue(output.contains("lodash"));
-        assertTrue(output.contains("4.18.1"));
+        String clean = Colors.strip(output);
+        assertTrue(clean.contains("lodash"));
+        assertTrue(clean.contains("4.18.1"));
     }
 
     @Test
@@ -75,8 +77,9 @@ class OutdatedCommandsTest {
 
         String output = commands.outdated(true);
 
-        assertTrue(output.contains("mocha"));
-        assertTrue(output.contains("devDependencies"));
+        String clean = Colors.strip(output);
+        assertTrue(clean.contains("mocha"));
+        assertTrue(clean.contains("devDependencies"));
     }
 
     @Test
@@ -86,6 +89,6 @@ class OutdatedCommandsTest {
 
         String output = commands.outdated(true);
 
-        assertTrue(output.contains("No devDependencies"));
+        assertTrue(Colors.strip(output).contains("No devDependencies"));
     }
 }

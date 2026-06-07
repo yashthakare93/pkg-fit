@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import com.pkgfit.model.ProjectContext;
 import com.pkgfit.service.ContextService;
+import com.pkgfit.util.Colors;
 
 class ListCommandsTest {
 
@@ -29,8 +30,9 @@ class ListCommandsTest {
 
         String output = commands.list(false);
 
-        assertTrue(output.contains("lodash"));
-        assertTrue(output.contains("^4.0.0"));
+        String clean = Colors.strip(output);
+        assertTrue(clean.contains("lodash"));
+        assertTrue(clean.contains("^4.0.0"));
     }
 
     @Test
@@ -39,7 +41,7 @@ class ListCommandsTest {
 
         String output = commands.list(false);
 
-        assertTrue(output.contains("No package.json"));
+        assertTrue(Colors.strip(output).contains("No package.json"));
     }
 
     @Test
@@ -48,7 +50,7 @@ class ListCommandsTest {
 
         String output = commands.list(false);
 
-        assertTrue(output.contains("No Dependencies"));
+        assertTrue(Colors.strip(output).contains("No Dependencies"));
     }
 
     @Test
@@ -58,8 +60,9 @@ class ListCommandsTest {
 
         String output = commands.list(true);
 
-        assertTrue(output.contains("mocha"));
-        assertTrue(output.contains("devDependencies"));
+        String clean = Colors.strip(output);
+        assertTrue(clean.contains("mocha"));
+        assertTrue(clean.contains("devDependencies"));
     }
 
     @Test
@@ -69,6 +72,6 @@ class ListCommandsTest {
 
         String output = commands.list(true);
 
-        assertTrue(output.contains("No devDependencies"));
+        assertTrue(Colors.strip(output).contains("No devDependencies"));
     }
 }

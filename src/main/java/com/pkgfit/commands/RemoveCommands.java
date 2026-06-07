@@ -8,6 +8,7 @@ import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
 
 import com.pkgfit.service.RemoveService;
+import com.pkgfit.util.Colors;
 
 @ShellComponent
 public class RemoveCommands {
@@ -37,18 +38,18 @@ public class RemoveCommands {
             try {
                 boolean wasRemoved = removeService.removeDependency(pkg, dev, Path.of("."));
                 if (wasRemoved) {
-                    sb.append(String.format("  \u2713 %s%n", pkg));
+                    sb.append("  ").append(Colors.green("\u2713")).append(" ").append(Colors.cyan(pkg)).append("\n");
                     removed++;
                 } else {
-                    sb.append(String.format("  \u2717 %s \u2014 not found%n", pkg));
+                    sb.append("  ").append(Colors.red("\u2717")).append(" ").append(Colors.cyan(pkg)).append(" \u2014 ").append(Colors.yellow("not found")).append("\n");
                     notFound++;
                 }
             } catch (IOException e) {
-                sb.append(String.format("  \u2717 %s \u2014 failed: %s%n", pkg, e.getMessage()));
+                sb.append("  ").append(Colors.red("\u2717")).append(" ").append(Colors.cyan(pkg)).append(" \u2014 ").append(Colors.red("failed: " + e.getMessage())).append("\n");
                 notFound++;
             }
         }
-        sb.append(String.format("\n%d removed, %d not found", removed, notFound));
+        sb.append("\n").append(Colors.bold(removed + " removed")).append(", ").append(Colors.red(notFound + " not found"));
         return sb.toString();
     }
 
@@ -56,12 +57,12 @@ public class RemoveCommands {
         try {
             boolean removed = removeService.removeDependency(packageName, dev, Path.of("."));
             if (!removed) {
-                return "Package '" + packageName + "' not found" + (dev ? " in devDependencies." : " in dependencies.");
+                return Colors.yellow("Package '") + Colors.cyan(packageName) + Colors.yellow("' not found") + (dev ? " in devDependencies." : " in dependencies.");
             }
             String label = dev ? "devDependencies" : "dependencies";
-            return "Removed '" + packageName + "' from " + label + ".";
+            return Colors.green("Removed") + " " + Colors.cyan(packageName) + Colors.dim(" from " + label) + ".";
         } catch (IOException e) {
-            return "Failed to write package.json: " + e.getMessage();
+            return Colors.red("Failed to write package.json: " + e.getMessage());
         }
     }
 }

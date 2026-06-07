@@ -9,6 +9,7 @@ import java.nio.file.Path;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.pkgfit.util.Colors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -22,7 +23,7 @@ class InitCommandsTest {
         InitCommands cmd = new InitCommands(mapper, tempDir);
         String result = cmd.init("test-project");
 
-        assertEquals("Created package.json.", result);
+        assertEquals("Created package.json for \"test-project\".", Colors.strip(result));
         assertTrue(tempDir.resolve("package.json").toFile().exists());
     }
 
@@ -33,7 +34,7 @@ class InitCommandsTest {
 
         String result = cmd.init("test");
 
-        assertEquals("package.json already exists.", result);
+        assertEquals("package.json already exists.", Colors.strip(result));
     }
 
     @Test

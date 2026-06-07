@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import com.pkgfit.service.RemoveService;
+import com.pkgfit.util.Colors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +32,7 @@ class RemoveCommandsTest {
 
         String output = commands.remove("lodash", false);
 
-        assertEquals("Removed 'lodash' from dependencies.", output);
+        assertEquals("Removed lodash from dependencies.", Colors.strip(output));
     }
 
     @Test
@@ -40,7 +41,7 @@ class RemoveCommandsTest {
 
         String output = commands.remove("lodash", false);
 
-        assertEquals("Package 'lodash' not found in dependencies.", output);
+        assertEquals("Package 'lodash' not found in dependencies.", Colors.strip(output));
     }
 
     @Test
@@ -49,7 +50,7 @@ class RemoveCommandsTest {
 
         String output = commands.remove("mocha", true);
 
-        assertEquals("Removed 'mocha' from devDependencies.", output);
+        assertEquals("Removed mocha from devDependencies.", Colors.strip(output));
     }
 
     @Test
@@ -58,7 +59,7 @@ class RemoveCommandsTest {
 
         String output = commands.remove("mocha", true);
 
-        assertEquals("Package 'mocha' not found in devDependencies.", output);
+        assertEquals("Package 'mocha' not found in devDependencies.", Colors.strip(output));
     }
 
     @Test
@@ -67,7 +68,7 @@ class RemoveCommandsTest {
 
         String output = commands.remove("lodash", false);
 
-        assertEquals("Failed to write package.json: Permission denied", output);
+        assertEquals("Failed to write package.json: Permission denied", Colors.strip(output));
     }
 
     @Test
@@ -77,8 +78,9 @@ class RemoveCommandsTest {
 
         String output = commands.remove("lodash react", false);
 
-        assertTrue(output.contains("\u2713 lodash"));
-        assertTrue(output.contains("\u2713 react"));
+        String clean = Colors.strip(output);
+        assertTrue(clean.contains("\u2713 lodash"));
+        assertTrue(clean.contains("\u2713 react"));
     }
 
     @Test
@@ -88,7 +90,8 @@ class RemoveCommandsTest {
 
         String output = commands.remove("lodash unknown", false);
 
-        assertTrue(output.contains("\u2713 lodash"));
-        assertTrue(output.contains("\u2717 unknown"));
+        String clean = Colors.strip(output);
+        assertTrue(clean.contains("\u2713 lodash"));
+        assertTrue(clean.contains("\u2717 unknown"));
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.shell.standard.ShellMethod;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pkgfit.util.Colors;
 
 @ShellComponent
 public class DedupeCommands {
@@ -35,7 +36,7 @@ public class DedupeCommands {
     public String dedupe() {
         File pkgJson = workingDir.resolve("package.json").toFile();
         if (!pkgJson.exists()) {
-            return "No package.json found in current directory.";
+            return Colors.red("No package.json found in current directory.");
         }
         try {
             JsonNode root = objectMapper.readTree(pkgJson);
@@ -44,7 +45,7 @@ public class DedupeCommands {
             Map<String, String> devDeps = readDeps(root.get("devDependencies"));
 
             if (deps.isEmpty() && devDeps.isEmpty()) {
-                return "No dependencies found in package.json.";
+                return Colors.yellow("No dependencies found in package.json.");
             }
 
             Set<String> allNames = new HashSet<>(deps.keySet());
@@ -61,21 +62,21 @@ public class DedupeCommands {
 
                 if (inDeps && inDevDeps && !depsRange.equals(devDepsRange)) {
                     dupCount++;
-                    sb.append(String.format("  %s%n", name));
-                    sb.append(String.format("    dependencies:      %s%n", depsRange));
-                    sb.append(String.format("    devDependencies:   %s%n", devDepsRange));
+                    sb.append("  ").append(Colors.bold(Colors.yellow(name))).append("\n");
+                    sb.append("    ").append(Colors.dim("dependencies:      ")).append(Colors.cyan(depsRange)).append("\n");
+                    sb.append("    ").append(Colors.dim("devDependencies:   ")).append(Colors.magenta(devDepsRange)).append("\n");
                 }
             }
 
             if (dupCount == 0) {
-                return "No duplicate dependencies found with conflicting ranges.";
+                return Colors.green("No duplicate dependencies found with conflicting ranges.");
             }
 
-            sb.insert(0, String.format("Found %d duplicate(s):\n", dupCount));
+            sb.insert(0, Colors.bold("Found " + dupCount + " duplicate(s):") + "\n");
             return sb.toString();
 
         } catch (Exception e) {
-            return "Failed to read package.json: " + e.getMessage();
+            return Colors.red("Failed to read package.json: " + e.getMessage());
         }
     }
 

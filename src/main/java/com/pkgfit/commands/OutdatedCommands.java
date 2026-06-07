@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.pkgfit.model.ProjectContext;
 import com.pkgfit.service.ContextService;
 import com.pkgfit.service.RegistryService;
+import com.pkgfit.util.Colors;
+import com.pkgfit.util.Spinner;
 
 @ShellComponent
 public class OutdatedCommands {
@@ -28,7 +30,7 @@ public class OutdatedCommands {
         ProjectContext context = contextService.detect();
 
         if(!context.packageJsonExists()){
-            return "No package.json found in current directory.";
+            return Colors.red("No package.json found in current directory.");
         }
 
         Map<String, String> deps;
@@ -42,34 +44,43 @@ public class OutdatedCommands {
         }
 
         if(deps.isEmpty()){
-            return "No " + label + " found in package.json.";
+            return Colors.yellow("No ") + Colors.bold(label) + Colors.yellow(" found in package.json.");
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("Outdated ").append(label).append(":\n");
-        sb.append("------------------\n");
+        Spinner.start("Checking " + deps.size() + " packages for updates");
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append(Colors.bold("Outdated " + label)).append(":\n");
+            sb.append(Colors.dim("------------------\n"));
 
-        for(Map.Entry<String, String> entry : deps.entrySet()){
-            String name = entry.getKey();
-            String currentVersion = entry.getValue();
+            for(Map.Entry<String, String> entry : deps.entrySet()){
+                String name = entry.getKey();
+                String currentVersion = entry.getValue();
 
-            JsonNode metadata = registryService.fetchPackageMetadata(name);
-            if(metadata == null){
-                sb.append(String.format("%s: not found in registry\n", name));
-                continue;
+                JsonNode metadata = registryService.fetchPackageMetadata(name);
+                if(metadata == null){
+                    sb.append(Colors.red(name + ": not found in registry\n"));
+                    continue;
+                }
+
+                String latestVersion = metadata.path("dist-tags").path("latest").asText(null);
+                if(latestVersion == null){
+                    sb.append(Colors.yellow(name + ": no 'latest' version in registry\n"));
+                    continue;
+                }
+
+                if(!currentVersion.equals(latestVersion)){
+                    sb.append(String.format("  %s  %s  %s  %s\n",
+                            Colors.cyan(name),
+                            Colors.yellow(currentVersion),
+                            Colors.dim("\u2192"),
+                            Colors.green(latestVersion)));
+                }
             }
 
-            String latestVersion = metadata.path("dist-tags").path("latest").asText(null);
-            if(latestVersion == null){
-                sb.append(String.format("%s: no 'latest' version in registry\n", name));
-                continue;
-            }
-
-            if(!currentVersion.equals(latestVersion)){
-                sb.append(String.format("%s: %s -> %s\n", name, currentVersion, latestVersion));
-            }
+            return sb.toString();
+        } finally {
+            Spinner.stop();
         }
-
-        return sb.toString();
     }
 }

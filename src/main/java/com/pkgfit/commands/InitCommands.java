@@ -11,6 +11,7 @@ import org.springframework.shell.standard.ShellOption;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.pkgfit.util.Colors;
 
 @ShellComponent
 public class InitCommands {
@@ -32,7 +33,7 @@ public class InitCommands {
     public String init(@ShellOption(defaultValue = "", help = "Project name") String name) {
         File pkgJson = workingDir.resolve("package.json").toFile();
         if (pkgJson.exists()) {
-            return "package.json already exists.";
+            return Colors.yellow("package.json already exists.");
         }
         try {
             ObjectNode root = objectMapper.createObjectNode();
@@ -43,9 +44,9 @@ public class InitCommands {
             root.put("version", "1.0.0");
             root.putObject("dependencies");
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(pkgJson, root);
-            return "Created package.json.";
+            return Colors.green("Created ") + Colors.cyan("package.json") + Colors.dim(" for \"" + projectName + "\".");
         } catch (IOException e) {
-            return "Failed to create package.json: " + e.getMessage();
+            return Colors.red("Failed to create package.json: " + e.getMessage());
         }
     }
 }

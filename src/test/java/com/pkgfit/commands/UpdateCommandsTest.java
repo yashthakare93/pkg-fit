@@ -16,6 +16,7 @@ import com.pkgfit.model.ProjectContext;
 import com.pkgfit.model.ResolutionResult;
 import com.pkgfit.service.AddService;
 import com.pkgfit.service.ContextService;
+import com.pkgfit.service.NpmService;
 import com.pkgfit.service.ResolverService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ class UpdateCommandsTest {
     private ContextService contextService;
     private ResolverService resolverService;
     private AddService addService;
+    private NpmService npmService;
     private UpdateCommands commands;
 
     @BeforeEach
@@ -32,7 +34,8 @@ class UpdateCommandsTest {
         contextService = mock(ContextService.class);
         resolverService = mock(ResolverService.class);
         addService = mock(AddService.class);
-        commands = new UpdateCommands(contextService, resolverService, addService);
+        npmService = mock(NpmService.class);
+        commands = new UpdateCommands(contextService, resolverService, addService, npmService);
     }
 
     @Test
@@ -41,7 +44,7 @@ class UpdateCommandsTest {
         when(resolverService.resolve("lodash", "^4.0.0", contextService.detect()))
                 .thenReturn(new ResolutionResult("lodash", "4.18.1", List.of(), false));
 
-        String output = commands.update("lodash", false);
+        String output = commands.update("lodash", false, false);
 
         assertTrue(output.contains("Updated"));
         assertTrue(output.contains("lodash"));
@@ -54,7 +57,7 @@ class UpdateCommandsTest {
         when(resolverService.resolve("lodash", "", contextService.detect()))
                 .thenReturn(new ResolutionResult("lodash", "4.18.1", List.of(), false));
 
-        String output = commands.update("lodash", false);
+        String output = commands.update("lodash", false, false);
 
         assertTrue(output.contains("Updated"));
     }
@@ -65,7 +68,7 @@ class UpdateCommandsTest {
         when(resolverService.resolve("unknown", "", contextService.detect()))
                 .thenReturn(new ResolutionResult("unknown", null, List.of(), false));
 
-        String output = commands.update("unknown", false);
+        String output = commands.update("unknown", false, false);
 
         assertTrue(output.contains("Could not resolve"));
     }
@@ -76,7 +79,7 @@ class UpdateCommandsTest {
         when(resolverService.resolve("react", "^19.0.0", contextService.detect()))
                 .thenReturn(new ResolutionResult("react", "19.2.7", List.of(), false));
 
-        String output = commands.update("react@^19.0.0", false);
+        String output = commands.update("react@^19.0.0", false, false);
 
         assertTrue(output.contains("Updated"));
         assertTrue(output.contains("19.2.7"));
@@ -88,7 +91,7 @@ class UpdateCommandsTest {
         when(resolverService.resolve(eq("mocha"), eq("^10.0.0"), any()))
                 .thenReturn(new ResolutionResult("mocha", "10.7.3", List.of(), false));
 
-        String output = commands.update("mocha", true);
+        String output = commands.update("mocha", true, false);
 
         assertTrue(output.contains("Updated"));
         verify(addService).addDependency(eq("mocha"), eq("^10.7.3"), eq(true), any(Path.class));
