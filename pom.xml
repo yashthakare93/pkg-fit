@@ -22,6 +22,7 @@
     <properties>
         <java.version>17</java.version>
         <spring-shell.version>3.2.5</spring-shell.version>
+        <excludedGroups>integration</excludedGroups>
     </properties>
 
     <dependencies>
@@ -99,6 +100,15 @@
                 <configuration>
                     <source>17</source>
                     <target>17</target>
+                </configuration>
+            </plugin>
+
+            <!-- Exclude integration tests from normal build -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>${excludedGroups}</excludedGroups>
                 </configuration>
             </plugin>
         </plugins>
